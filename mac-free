@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+
+'''
+Used to poll the network for machines not logged into. these machines were used as render machines 
+afterwards though proprietary software.
+'''
+
+
+import os
+import sys
+import time
+import argparse
+import random
+
+rwork = []
+nwork = []
+iwork = []
+
+
+parser = argparse.ArgumentParser()
+
+
+#parser.add_argument("-q", help="see the number of machines available")
+parser.add_argument("-n", help="Requires a number. Show only x machines in a friendly format", type=int)
+parser.add_argument("-q", help="see the number of machines available", action="store_true")
+parser.epilog="Use this tool to see which machines are not currently logged into locally. Useful for local renders."
+
+
+args = parser.parse_args()
+# Naming the output folder and files
+
+now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+fil = "/net/freeworks"
+
+
+
+
+# Get the output from rwho
+def getUp():
+    
+  
+    f = os.popen("rwho -a | grep :: | grep -v unknown")
+    
+    for line in f.readlines():
+        out = line.split()
+        out2 = out[1].split(':')
+        rwork.append(out2[0])        
+        
+        
+
+
+
+
+# Get the output from nmap
+def getAll():
+    
+#    f = os.popen("nmap -sn 172.27.1.0/21")
+    f = os.popen("ruptime|grep -E work'[0-9]{1,2} ' ")
+    
+    for line in f.readlines():
+        out = line.split()      
+        if str(out[1]) == "up":
+            if str(out[0]) != "work1":
+                if str(out[0]) != "work42":
+
+                    nwork.append(out[0])
+        
+        
+        
+        
+        
+        
+# Compare the two  sets of Data  
+def getIdle():
+
+        
+    for i in nwork :
+        if i not in rwork:
+#            print( i + " used. not added")
+            iwork.append(i)
+
+# get the render levels if render overloaded, no go
+
+    f = os.popen("ruptime | grep -e render -e compo | tr ',' ' '")
+    for line in f.readlines():
+        out = line.split()
+       #print(out)
+        if "compo" in str(out[0]):
+            if float(out[6]) < 9:
+                    iwork.append(out[0])            
+
+#        if "render" in str(out[0]):
+#            if float(out[6]) < 64:
+#                    iwork.append(out[0])
+                
+                
+
+
+
+
+# write to the freeworks file
+def wrFil():
+
+    os.remove(fil)
+
+    free = open(fil, 'w+')
+    #free.write("#As of " + now + ", The following machines are idle: \n")
+
+    for i in iwork:
+        free.write(i)
+        free.write("\n")
+
+    free.close()
+    os.chmod(fil,0o777)
+    
+
+
+
+
+
+
+# Do all the things
+getUp()            
+getAll()
+getIdle()
+# wrFil()
+
+if args.n:
+    num = int(args.n)
+    if num > len(iwork):
+        #print( "ERROR. There are only " + str(len(iwork)) + " Machines available right now")
+        num = len(iwork)
+        #sys.exit()
+
+   
+#    print("Showing " + str(num) + " randomly selected machines" )
+    firstr = str(random.sample(iwork, num))
+    newstr = firstr.replace(",","")
+    secstr = newstr.replace("]","")
+    thistr = secstr.replace("[","")
+    finstr = thistr.replace("'","")
+    print(finstr)
+    
+    
+elif args.q:
+     print("There are currently " + str(len(iwork)) + " machines available")
+     sys.exit()  
+
+
+else:
+    print(" ")
+    print("There are currently " + str(len(iwork)) + " machines available")
+    print(" ")
+    for i in iwork:
+        print(i)
+
+
+

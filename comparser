@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Apr 26 13:34:18 2017
+
+Generates a Webpage on the intranet which details the disk usage.
+Used mostly in a specific environment, but geel free to use as you see fit.
+
+@author: rharvison
+"""
+
+
+import time
+import os
+import shutil
+
+pat = "/net/"
+proj = []
+file = "/var/www/intrabuf/index.php"
+filed = "/var/www/index2.php"
+vis = []
+now = time.strftime("%A %b %d %Y at %H:%M %p %Z", time.localtime())
+dindex = []
+
+
+
+
+def getall() :
+    for i in os.listdir(pat) :
+        if i.startswith("com"):
+            di = pat + i      
+            #print(di)
+            pro = os.listdir(di)
+            #print(pro)
+            for j in pro :
+                #print(str(j))
+                if j.isupper() and j not in proj and str(j) not in { "MAC", "PROD", "PREPRO","RAID401","TMP" }:
+                    proj.append(j)
+                    #print(j)
+                
+
+def reloop_basic() :
+
+    index = open(file, 'w')
+    index.write('{{template:require src="html_begin.php"}}' + "\n" + '{{template:require src="content_header.php"}}' + "\n" + ' {{template:require src="content_begin.php"}}' + "\n\n\n")
+    index.write('<style>' + "\n" + 'th {' + "\n" + '     background-color: #caf2f3 ; ' + "\n" + '}' + "\n" )
+    index.write("table \n { \n table-layout: fixed; \n width: 90%; \n } \n" + '</style>' + "\n" )
+    index.write('<h2> Montreal Disk Layout by Project </h2>' + "\n\n\n")
+    index.write("<b>Last updated:</b> &nbsp" + now + "<br> <br>")
+    index.write("<p> Looking for more details? <a href=https://intranet/documentation/disks/index2.php> Check the detailed version </a> </p>")
+
+
+    proj.sort()
+    #print(proj)
+
+                
+    for p in proj:
+        #print(p)
+        index.write('<table border="1" cellpadding=10 >' + "<br>")    
+
+        index.write('<tr> <th colspan="3">' + p + '</th> </tr>' + "<br>")
+        for i in os.listdir(pat) :
+            if i.startswith("com"):
+                di = pat + i      
+                
+                duse = shutil.disk_usage(di)
+   #             print(duse)
+                dtot = round(((duse[1]/duse[0])*100 ),1)
+ #               dus = duse[1]
+                dfre = duse[2]
+                if p in os.listdir(di):
+                    co = os.listdir(di +"/"+ p)
+                    for k in co :
+                        if not k.startswith(".") :
+                            vis.append(k)
+                    
+                    
+                    
+                    
+                    con = str(vis)[1:-1]
+                    con2 = con.replace("'"," ")
+                    cont = con2.replace(',', '<br>')
+                    dindex.append( '<tr> <td>' + di + '   </td> <td>   ' + '<b>Disk used </b> <progress value="' + str(dtot) + '"max="100"> </progress> &nbsp' + str(dtot) + '% <br> <br> Remaining space: <b> ' + str(round((dfre/1099511627776),1)) + ' </b> TB   </td> <td>   ' + str(cont) + '   </td> </tr>' )
+                    del vis[:]
+        dindex.sort()
+        dcon =  str(dindex)[1:-1]
+        dcon2 = dcon.replace(',', ' ')
+        dcon3 = dcon2.replace("'"," ") 
+        index.write(dcon3)           
+        del dindex[:]
+        index.write('</table>' + "\n <br><br> \n")
+#                    print( di + " ===> " + str(cont))
+                        
+    index.write('{{template:require src="content_end.php"}}' + "\n" + '{{template:require src="html_end.php"}}' + "\n" )                        
+    index.close()                    
+
+def reloop_detail() :
+
+    index.write('{{template:require src="html_begin.php"}}' + "\n" + '{{template:require src="content_header.php"}}' + "\n" + ' {{template:require src="content_begin.php"}}' + "\n\n\n")
+    index.write('<style>' + "\n" + 'th {' + "\n" + '     background-color: #caf2f3 ; ' + "\n" + '}' + "\n" )
+    index.write("</style>")
+    #index.write("table \n { \n table-layout: fixed; \n width: 100%; \n } \n" + '</style>' + "\n" )
+    index.write('<h2> Montreal Disk Layout by Project </h2>' + "\n\n\n")
+    index.write("<b>Last updated:</b> &nbsp" + now + "<br> <br>")
+    index.write("<p> Looking for fewer details? <a href=https://intranet/documentation/disks/index.php> Check the simpler version </a> </p>")
+
+
+    proj.sort()
+    #print(proj)
+
+                
+    for p in proj:
+        #print(p)
+        index.write('<table border="1" cellpadding=10 >' + "\n")    
+
+        index.write('<tr> <th colspan="6">' + p + '</th> </tr>' + "\n")
+        for i in os.listdir(pat) :
+            if i.startswith("com"):
+                di = pat + i         
+                duse = shutil.disk_usage(di)
+  #              print(duse)
+                dtot = round(((duse[1]/duse[0])*100 ),1)
+ #               dus = duse[1]
+                dfre = duse[2]
+                dcom = "df " + di + "| grep -v Filesystem "
+                
+                f = os.popen(dcom)
+                dmon = f.read()
+                dmon2 = str(dmon).split(".")
+#                print(dmon2[0])
+                
+                if str(dmon2[0]) in { "candata10", "candata15", "candata1", "candata2", "candata3", "candata4", "candata5", "tank"} :
+                    core = "quad core (weaker)"
+                else:
+                    core = "Hexa-deca core (stronger)"
+                
+                #nufil = sum([len(files) for r, d, files in os.walk(di)])
+                inode = "df -i " + di + "|grep -v Filesystem"
+                g = os.popen(inode)
+                
+                ino = g.read()
+                ino2 = ino.split()
+                inouse = float(ino2[2])
+#                inoperc = ino2[4]
+
+                nufil = str(round(inouse/1000)) + " K " 
+                
+                if p in os.listdir(di):
+                    co = os.listdir(di +"/"+ p)
+
+                    for k in co :
+                        if not k.startswith(".") :
+
+                            vis.append(k)
+                    
+                    
+                    
+#                    print(core)
+
+                    con = str(vis)[1:-1]
+                    con2 = con.replace("'"," ")
+                    cont = con2.replace(',', '<br>')
+                    dindex.append( '<tr> <td>' + di + '   </td> <td>   ' + '<b>Disk used </b> <progress value="' + str(dtot/2) + '"max="50"> </progress> &nbsp' + str(dtot) + '% <br> <br> Remaining space: <b> ' + str(round((dfre/1099511627776),1)) + ' </b> TB </td> <td> Server location: <br>' + dmon2[0] + ' </td> <td> Server Type: <br>' + core + ' </td><td> Number of files on disk (inodes) <br>' + nufil + ' </td> <td>  ' + str(cont) + ' </td> </tr>')
+                    del vis[:]
+        dindex.sort()
+        dcon =  str(dindex)[1:-1]
+        dcon2 = dcon.replace(',', ' ')
+        dcon3 = dcon2.replace("'"," ") 
+        index.write(dcon3)           
+        del dindex[:]                   
+        index.write('</table>' + "\n <br><br> \n")
+#                    print( di + " ===> " + str(cont))
+                        
+    index.write('{{template:require src="content_end.php"}}' + "\n" + '{{template:require src="html_end.php"}}' + "\n" )                        
+    index.close()
+
+
+    
+    
+    
+getall()
+reloop_basic()                        
+reloop_detail()
+
+            

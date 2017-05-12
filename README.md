@@ -1,2 +1,5 @@
 # old-work
-Scritps I have used in previous roles
+Scripts I created at one of my previous jobs.
+
+Mostly just placed here to have them somewhere.
+Mostly amature Python.
