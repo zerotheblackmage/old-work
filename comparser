@@ -16,7 +16,7 @@ import shutil
 
 pat = "/net/"
 proj = []
-file = "/var/www/intrabuf/index.php"
+file = "/var/www/intranet/index.php"
 filed = "/var/www/index2.php"
 vis = []
 now = time.strftime("%A %b %d %Y at %H:%M %p %Z", time.localtime())
