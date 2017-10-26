@@ -1,23 +1,26 @@
 #!/usr/bin/env python3.5
 
-# Script to poll google calendar for which calendars a user has access to
-
 import httplib2
 import datetime
 import subprocess
+import argparse
 
 from apiclient import discovery
 from oauth2client.service_account import ServiceAccountCredentials
 
+# argument parsing variable
+parser = argparse.ArgumentParser()
+parser.add_argument("username", type=str, help="process just a single user, use all for everyone in the company")
+args = parser.parse_args()
+users_ret = args.username
 
 # Variables needed for the google calendar api authentication
 SCOPES = 'https://www.googleapis.com/auth/calendar'
 APPLICATION_NAME = 'Caltool'
-cred_file = # Locarion of the service account .json
-credentials = ServiceAccountCredentials.from_json_keyfile_name( cred_file
-              , scopes=SCOPES)
+cred_file = #credentials .json for the service acocunt goes here
+credentials = ServiceAccountCredentials.from_json_keyfile_name( cred_file, scopes=SCOPES)
 now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-domain = # insert domain here
+domain = #insert domain here
 
 # Function to get and print all the calendars that a user is subscribed to
 def caltool(name):
@@ -47,12 +50,19 @@ def getusers():
         if s.startswith("/home"):
             users.append(str(s)[6:])
     users.sort()
-    print(users)
+    # print(users)
     for u in users:
         try:
-            # caltool(u)
-            print(u)
+            caltool(u)
+            # print(u)
         except:
             print("No calendars for " + u)
 
-getusers()
+if str(users_ret) == "all":
+    getusers()
+else:
+    caltool(str(users_ret))
+
+
+
+
