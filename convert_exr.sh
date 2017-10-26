@@ -28,7 +28,6 @@ echo " "
 echo "Please enter the path where the plate can be found (no leading / please)"
 
 read pth
-#pth=/net/com_scan4/TRIBORO/IN/SRC/20170216_efilm_SCANS_0186_SC071/EXR
 
 # Find out how many shots there are
 
