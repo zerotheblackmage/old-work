@@ -1,0 +1,72 @@
+#!/usr/bin/env python3.5
+
+import sqlite3
+import argparse
+import os
+import datetime
+import re
+from shutil import copyfile
+
+
+# argument parsing variable
+parser = argparse.ArgumentParser()
+parser.add_argument("username", type=str, help="process just a single user, use all for everyone in the company")
+args = parser.parse_args()
+users_ret = args.username
+users = []
+
+
+def getusers():
+    raw = os.subprocess.check_output("getent passwd", shell=True)
+    line = str(raw).split(":")
+    for s in line:
+        if s.startswith("/home"):
+            users.append(str(s)[6:])
+    users.sort()
+
+
+def gethis(user, browser):
+    orig = "/nas_homes/{}/.config/{}/Default/History".format(user, browser)
+    snap = orig + ".snap"
+
+    try:
+        copyfile(orig, snap)
+        conn = sqlite3.connect(snap)
+        c = conn.cursor()
+        c.execute('SELECT * FROM urls WHERE 1;')
+        all_rows = c.fetchall()
+        ind = 0
+        filename = "{}-{}-{}.csv".format(user, browser, ind)
+        if os.path.exists(filename):
+            append_write = 'a'  # append if already exists
+        else:
+            append_write = 'w'  # make a new file if not
+
+        history = open(filename, append_write)
+        for i, entry in enumerate(all_rows):
+
+            secs = int(entry[5])
+            stamp = datetime.datetime(1601, 1, 1) + datetime.timedelta(microseconds=secs)
+            stamp = str(stamp).split(".")
+            '''
+            if len(entry[1]) >= 100:
+                urls = str(entry[1][0:99])
+            else:
+                urls = str(entry[1])
+            '''
+            urls = str(entry[1])
+            pagename = re.sub('[^A-Za-z0-9\s.@]+', '', str(entry[2]))
+            history.write("{} UTC , {} , {} , end \n".format(str(stamp[0]), pagename, urls))
+
+        history.close()
+    except IOError as e:
+        print("an error has occurred:" + str(e))
+
+if str(users_ret) == "all":
+    getusers()
+else:
+    users.append(users_ret)
+
+for u in users:
+    gethis(u, "google-chrome")
+    gethis(u, "chromium")
