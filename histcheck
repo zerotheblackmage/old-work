@@ -26,14 +26,28 @@ def getusers():
 
 
 def gethis(user, browser):
-    orig = "/nas_homes/{}/.config/{}/Default/History".format(user, browser)
-    snap = orig + ".snap"
+
+    if browser == "firefox":
+        fold = "/nas_homes/{}/.mozilla/firefox".format(user)
+        print(fold)
+        for f in os.listdir(fold):
+            if f.endswith("User"):
+                profilename = f
+                orig = fold + "/" + profilename + "/places.sqlite"
+                print(orig)
+                snap = orig + ".snap"
+    else:
+        orig = "/nas_homes/{}/.config/{}/Default/History".format(user, browser)
+        snap = orig + ".snap"
 
     try:
         copyfile(orig, snap)
         conn = sqlite3.connect(snap)
         c = conn.cursor()
-        c.execute('SELECT * FROM urls WHERE 1;')
+        if browser == "firefox":
+            c.execute("SELECT datetime(a.visit_date/1000000,'unixepoch') AS visit_date, b.url FROM moz_historyvisits AS a JOIN moz_places AS b ON a.place_id=b.id WHERE 1 ORDER BY a.visit_date ASC;")
+        else:
+            c.execute('SELECT * FROM urls WHERE 1;')
         all_rows = c.fetchall()
         ind = 0
         filename = "{}-{}-{}.csv".format(user, browser, ind)
@@ -45,18 +59,15 @@ def gethis(user, browser):
         history = open(filename, append_write)
         for i, entry in enumerate(all_rows):
 
-            secs = int(entry[5])
-            stamp = datetime.datetime(1601, 1, 1) + datetime.timedelta(microseconds=secs)
-            stamp = str(stamp).split(".")
-            '''
-            if len(entry[1]) >= 100:
-                urls = str(entry[1][0:99])
+            if browser == "firefox":
+                history.write( "{}, {} \n".format(entry[0], entry[1]))
             else:
+                secs = int(entry[5])
+                stamp = datetime.datetime(1601, 1, 1) + datetime.timedelta(microseconds=secs)
+                stamp = str(stamp).split(".")
                 urls = str(entry[1])
-            '''
-            urls = str(entry[1])
-            pagename = re.sub('[^A-Za-z0-9\s.@]+', '', str(entry[2]))
-            history.write("{} UTC , {} , {} , end \n".format(str(stamp[0]), pagename, urls))
+                pagename = re.sub('[^A-Za-z0-9\s.@]+', '', str(entry[2]))
+                history.write("{} UTC , {} , {} , end \n".format(str(stamp[0]), pagename, urls))
 
         history.close()
     except IOError as e:
@@ -68,5 +79,5 @@ else:
     users.append(users_ret)
 
 for u in users:
-    gethis(u, "google-chrome")
-    gethis(u, "chromium")
+    for br in ["firefox", "chromium", "google-chrome"]:
+        gethis(u, br)
